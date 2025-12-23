@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贝塞尔曲线生成器</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 贝塞尔曲线生成器专用样式 */
+        .bezier-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .bezier-title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .bezier-canvas-container {
+            position: relative;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #bezier-canvas {
+            display: block;
+            background-color: #fafafa;
+            cursor: crosshair;
+        }
+        
+        .bezier-controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .bezier-controls label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .bezier-controls input, .bezier-controls button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .points-list {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .points-list h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .point-item {
+            margin: 5px 0;
+            padding: 5px 10px;
+            background-color: white;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .curve-info {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        /* 按钮样式增强 */
+        .bezier-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bezier-btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .bezier-btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .bezier-btn-secondary {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        
+        .bezier-btn-secondary:hover {
+            background-color: #d0d0d0;
+        }
+        
+        .bezier-btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .bezier-btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        /* 返回按钮 */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: #95a5a6;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="bezier-container">
+        <a href="index.html" class="back-link">返回文档标注器</a>
+        <h1 class="bezier-title">贝塞尔曲线生成器</h1>
+        
+        <div class="bezier-controls">
+            <label>绘制模式：</label>
+            <button class="bezier-btn bezier-btn-primary" id="draw-mode-btn" data-mode="draw">自由绘制</button>
+            <button class="bezier-btn" id="add-point-mode-btn" data-mode="add">点击加点</button>
+            
+            <div style="margin-top: 15px;">
+                <label>贝塞尔曲线控制：</label>
+                <button class="bezier-btn bezier-btn-secondary" id="generate-curve-btn">生成贝塞尔曲线</button>
+                <button class="bezier-btn bezier-btn-secondary" id="clear-curves-btn">清除曲线</button>
+                <button class="bezier-btn bezier-btn-danger" id="clear-all-btn">清除所有</button>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label for="curve-degree">曲线阶数：</label>
+                <input type="number" id="curve-degree" min="1" max="10" value="3" style="padding: 8px; width: 80px; margin-right: 10px;">
+                <span style="color: #666; margin-right: 10px;">(1-10阶，直接输入数字)</span>
+                
+                <label for="curve-color">曲线颜色：</label>
+                <input type="color" id="curve-color" value="#3498db" style="margin-right: 10px;">
+                
+                <label for="curve-width">曲线宽度：</label>
+                <input type="range" id="curve-width" min="1" max="10" value="2" style="width: 100px; margin-right: 10px;">
+                <span id="curve-width-value">2</span>
+            </div>
+        </div>
+        
+        <div class="bezier-canvas-container">
+            <canvas id="bezier-canvas" width="960" height="600"></canvas>
+        </div>
+        
+        <div class="curve-info">
+            <strong>使用说明：</strong>
+            <ul>
+                <li><strong>自由绘制模式：</strong>在画布上按住鼠标拖动绘制曲线轨迹，松开鼠标结束绘制</li>
+                <li><strong>点击加点模式：</strong>在画布上点击添加单个点，可精确控制曲线的关键点</li>
+                <li><strong>生成曲线：</strong>绘制或添加点后，选择曲线阶数（1-5阶），点击"生成贝塞尔曲线"按钮生成拟合曲线</li>
+                <li><strong>曲线阶数：</strong>1阶为直线，2阶为二次贝塞尔曲线，3阶为三次贝塞尔曲线，以此类推，阶数越高曲线越复杂</li>
+                <li><strong>控制点：</strong>生成的曲线会显示控制点（蓝色点），可直观查看曲线的控制情况</li>
+                <li><strong>清除功能：</strong>可清除生成的曲线或清除所有内容（绘制轨迹+曲线）</li>
+            </ul>
+        </div>
+        
+        <div class="points-list">
+            <h3>当前点列表（点击可删除）：</h3>
+            <div id="points-container"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 贝塞尔曲线生成器 - 支持自由绘制和曲线拟合
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const canvas = document.getElementById('bezier-canvas');
+            const ctx = canvas.getContext('2d');
+            const drawModeBtn = document.getElementById('draw-mode-btn');
+            const addPointModeBtn = document.getElementById('add-point-mode-btn');
+            const generateCurveBtn = document.getElementById('generate-curve-btn');
+            const clearCurvesBtn = document.getElementById('clear-curves-btn');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            const curveColorInput = document.getElementById('curve-color');
+            const curveWidthInput = document.getElementById('curve-width');
+            const curveWidthValue = document.getElementById('curve-width-value');
+            const curveDegreeInput = document.getElementById('curve-degree');
+            const pointsContainer = document.getElementById('points-container');
+            
+            // 存储数据
+            let drawnPoints = []; // 用户绘制的原始点
+            let fittedPoints = []; // 用于拟合的点（采样后的）
+            let curves = []; // 生成的贝塞尔曲线
+            let currentMode = 'draw'; // 当前模式：'draw' 或 'add'
+            let isDrawing = false; // 是否正在绘制
+            
+            // 初始化画布
+            function initCanvas() {
+                drawGrid();
+                redrawAll();
+            }
+            
+            // 绘制网格
+            function drawGrid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制网格线
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 0.5;
+                
+                // 垂直线
+                for (let x = 0; x <= canvas.width; x += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // 水平线
+                for (let y = 0; y <= canvas.height; y += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // 绘制坐标轴
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1;
+                
+                // x轴
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+                
+                // y轴
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.stroke();
+            }
+            
+            // 绘制点
+            function drawPoint(x, y, index, color = '#e74c3c') {
+                // 绘制点
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 绘制点的边框
+                ctx.strokeStyle = color === '#e74c3c' ? '#c0392b' : '#2980b9';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // 绘制点的序号
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(index, x, y);
+            }
+            
+            // 绘制原始绘制轨迹
+            function drawDrawnPoints() {
+                if (drawnPoints.length < 2) return;
+                
+                ctx.strokeStyle = '#95a5a6';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(drawnPoints[0].x, drawnPoints[0].y);
+                
+                for (let i = 1; i < drawnPoints.length; i++) {
+                    ctx.lineTo(drawnPoints[i].x, drawnPoints[i].y);
+                }
+                
+                ctx.stroke();
+            }
+            
+            // 采样绘制的点，减少点的数量
+            function samplePoints(points, sampleSize = 20) {
+                if (points.length <= sampleSize) return points;
+                
+                const sampled = [];
+                const step = points.length / sampleSize;
+                
+                for (let i = 0; i < sampleSize; i++) {
+                    const index = Math.round(i * step);
+                    sampled.push(points[Math.min(index, points.length - 1)]);
+                }
+                
+                return sampled;
+            }
+            
+            // 贝塞尔曲线拟合算法（使用最小二乘法）
+            function fitBezierCurve(points, degree) {
+                if (points.length < 2) return null;
+                if (degree < 1) degree = 1;
+                
+                // 简单实现：使用控制点插值法生成贝塞尔曲线
+                // 对于n阶贝塞尔曲线，需要n+1个控制点
+                const controlPoints = [];
+                const n = Math.min(degree, points.length - 1);
+                
+                // 如果点数不足，使用所有点作为控制点
+                if (points.length <= n + 1) {
+                    return points;
+                }
+                
+                // 计算控制点
+                for (let i = 0; i <= n; i++) {
+                    const index = Math.round((i / n) * (points.length - 1));
+                    controlPoints.push(points[index]);
+                }
+                
+                return controlPoints;
+            }
+            
+            // 绘制n阶贝塞尔曲线
+            function drawNthDegreeBezier(controlPoints, color, width) {
+                if (controlPoints.length < 2) return;
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+                
+                // 根据控制点数量绘制不同阶数的贝塞尔曲线
+                switch (controlPoints.length) {
+                    case 2: // 1阶（直线）
+                        ctx.lineTo(controlPoints[1].x, controlPoints[1].y);
+                        break;
+                    case 3: // 2阶贝塞尔曲线
+                        ctx.quadraticCurveTo(
+                            controlPoints[1].x, controlPoints[1].y,
+                            controlPoints[2].x, controlPoints[2].y
+                        );
+                        break;
+                    case 4: // 3阶贝塞尔曲线
+                        ctx.bezierCurveTo(
+                            controlPoints[1].x, controlPoints[1].y,
+                            controlPoints[2].x, controlPoints[2].y,
+                            controlPoints[3].x, controlPoints[3].y
+                        );
+                        break;
+                    default: // 高阶贝塞尔曲线，使用分段绘制
+                        for (let i = 1; i < controlPoints.length - 2; i += 2) {
+                            const cp1 = controlPoints[i];
+                            const cp2 = controlPoints[i + 1];
+                            const end = i + 2 < controlPoints.length ? controlPoints[i + 2] : controlPoints[controlPoints.length - 1];
+                            
+                            ctx.bezierCurveTo(
+                                cp1.x, cp1.y,
+                                cp2.x, cp2.y,
+                                end.x, end.y
+                            );
+                        }
+                }
+                
+                ctx.stroke();
+                
+                // 绘制控制点
+                controlPoints.forEach((point, index) => {
+                    drawPoint(point.x, point.y, index + 1, '#3498db');
+                });
+            }
+            
+            // 生成贝塞尔曲线
+            function generateBezierCurve() {
+                if (drawnPoints.length < 2) {
+                    alert('请先绘制一些点或添加至少2个点');
+                    return;
+                }
+                
+                // 采样绘制的点
+                fittedPoints = samplePoints(drawnPoints, 20);
+                
+                // 获取曲线阶数并验证
+                let degree = parseInt(curveDegreeInput.value);
+                
+                // 验证输入范围
+                if (isNaN(degree) || degree < 1 || degree > 10) {
+                    alert('请输入有效的曲线阶数（1-10）');
+                    curveDegreeInput.value = 3; // 重置为默认值
+                    return;
+                }
+                
+                // 确保阶数不超过采样点数量
+                const maxPossibleDegree = Math.min(degree, fittedPoints.length - 1);
+                if (maxPossibleDegree < degree) {
+                    degree = maxPossibleDegree;
+                    curveDegreeInput.value = degree; // 更新输入框显示
+                }
+                
+                // 拟合贝塞尔曲线
+                const controlPoints = fitBezierCurve(fittedPoints, degree);
+                if (!controlPoints) return;
+                
+                // 绘制并保存曲线
+                const color = curveColorInput.value;
+                const width = parseInt(curveWidthInput.value);
+                
+                drawNthDegreeBezier(controlPoints, color, width);
+                
+                // 保存曲线信息
+                curves.push({
+                    controlPoints: [...controlPoints],
+                    color: color,
+                    width: width,
+                    degree: degree
+                });
+                
+                updatePointsList();
+            }
+            
+            // 重新绘制所有内容
+            function redrawAll() {
+                drawGrid();
+                
+                // 绘制原始绘制轨迹
+                drawDrawnPoints();
+                
+                // 绘制生成的贝塞尔曲线
+                curves.forEach(curve => {
+                    drawNthDegreeBezier(curve.controlPoints, curve.color, curve.width);
+                });
+            }
+            
+            // 更新点列表
+            function updatePointsList() {
+                pointsContainer.innerHTML = '';
+                
+                if (drawnPoints.length === 0) {
+                    pointsContainer.innerHTML = '<p>暂无绘制的点</p>';
+                    return;
+                }
+                
+                const pointCount = document.createElement('div');
+                pointCount.style.fontWeight = 'bold';
+                pointCount.style.marginBottom = '10px';
+                pointCount.textContent = `绘制的点：${drawnPoints.length} 个，采样后用于拟合的点：${fittedPoints.length} 个`;
+                pointsContainer.appendChild(pointCount);
+                
+                if (curves.length > 0) {
+                    const curveInfo = document.createElement('div');
+                    curveInfo.style.marginTop = '10px';
+                    curveInfo.style.padding = '10px';
+                    curveInfo.style.backgroundColor = '#e8f4f8';
+                    curveInfo.style.borderRadius = '4px';
+                    curveInfo.innerHTML = `<strong>生成的曲线：</strong>${curves.length} 条`;
+                    pointsContainer.appendChild(curveInfo);
+                }
+            }
+            
+            // 添加点
+            function addPoint(x, y) {
+                drawnPoints.push({ x, y });
+                updatePointsList();
+                redrawAll();
+            }
+            
+            // 切换绘制模式
+            function switchMode(mode) {
+                currentMode = mode;
+                
+                // 更新按钮状态
+                drawModeBtn.classList.toggle('bezier-btn-primary', mode === 'draw');
+                addPointModeBtn.classList.toggle('bezier-btn-primary', mode === 'add');
+                
+                // 更新鼠标样式
+                canvas.style.cursor = mode === 'draw' ? 'crosshair' : 'pointer';
+            }
+            
+            // 清除曲线
+            function clearCurves() {
+                curves = [];
+                redrawAll();
+                updatePointsList();
+            }
+            
+            // 清除所有（点+曲线）
+            function clearAll() {
+                drawnPoints = [];
+                fittedPoints = [];
+                curves = [];
+                redrawAll();
+                updatePointsList();
+            }
+            
+            // 事件监听
+            
+            // 绘制模式切换
+            drawModeBtn.addEventListener('click', () => switchMode('draw'));
+            addPointModeBtn.addEventListener('click', () => switchMode('add'));
+            
+            // 画布事件 - 自由绘制
+            canvas.addEventListener('mousedown', (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                if (currentMode === 'draw') {
+                    isDrawing = true;
+                    drawnPoints = [{ x, y }]; // 开始新的绘制
+                } else {
+                    addPoint(x, y); // 添加单个点
+                }
+            });
+            
+            canvas.addEventListener('mousemove', (event) => {
+                if (currentMode === 'draw' && isDrawing) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    drawnPoints.push({ x, y });
+                    redrawAll();
+                }
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+                updatePointsList();
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                isDrawing = false;
+            });
+            
+            // 生成曲线按钮
+            generateCurveBtn.addEventListener('click', generateBezierCurve);
+            
+            // 清除曲线按钮
+            clearCurvesBtn.addEventListener('click', clearCurves);
+            
+            // 清除所有按钮
+            clearAllBtn.addEventListener('click', clearAll);
+            
+            // 曲线宽度变化
+            curveWidthInput.addEventListener('input', (event) => {
+                curveWidthValue.textContent = event.target.value;
+            });
+            
+            // 初始化
+            initCanvas();
+            updatePointsList();
+        });
+    </script>
+</body>
+</html>

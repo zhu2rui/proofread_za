@@ -1,0 +1,298 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.input-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+#document-text {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    font-size: 14px;
+    font-family: 'Arial', sans-serif;
+}
+
+#annotation-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+}
+
+button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+/* 标注类型按钮 */
+.annotation-types {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.annotation-types label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.type-btn {
+    background-color: #e0e0e0;
+    color: #333;
+    border: 2px solid transparent;
+}
+
+.type-btn:hover {
+    background-color: #d0d0d0;
+}
+
+.type-btn.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+/* 右键菜单样式 */
+#context-menu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 120px;
+    overflow: hidden;
+}
+
+.menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+.menu-item:active {
+    background-color: #e0e0e0;
+}
+
+/* 操作按钮 */
+.action-buttons {
+    margin-top: 15px;
+}
+
+#execute-btn {
+    background-color: #3498db;
+    color: white;
+}
+
+#execute-btn:hover {
+    background-color: #2980b9;
+}
+
+#clear-btn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+#clear-btn:hover {
+    background-color: #c0392b;
+}
+
+.preview-section {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 200px;
+    margin-top: 20px;
+}
+
+/* 预览容器，用于并排布局 */
+.preview-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background-color: white;
+}
+
+/* 预览面板样式 */
+.preview-panel {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: white;
+    position: relative; /* 添加相对定位，使内部绝对定位元素相对于此定位 */
+}
+
+/* 预览面板标题 */
+.preview-panel h3 {
+    margin: 0;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    font-size: 16px;
+    color: #333;
+}
+
+/* 左侧标注面板 */
+.annotation-panel {
+    position: relative;
+}
+
+/* 右侧输出面板 */
+.output-panel {
+    background-color: #f9f9f9;
+}
+
+/* 输出层样式 */
+.output-layer {
+    padding: 20px;
+    background-color: white;
+    z-index: 1;
+    position: relative;
+}
+
+/* 输出内容样式 */
+.output-content {
+    font-size: 18px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+    min-height: 150px;
+}
+
+.document-layer {
+    padding: 20px;
+    background-color: white;
+    z-index: 1;
+    position: relative;
+}
+
+.text-content {
+    font-size: 18px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+    margin: 0;
+    padding: 10px;
+    user-select: text;
+    cursor: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    outline: none;
+}
+
+/* 光标样式 */
+.cursor {
+    position: absolute;
+    width: 2px;
+    height: 1.2em;
+    background-color: #000;
+    animation: blink 1s infinite;
+    z-index: 100;
+}
+
+/* 光标闪烁动画 */
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
+/* 自定义多选高亮样式 */
+.custom-selection {
+    background-color: rgba(52, 152, 219, 0.3); /* 深蓝色半透明 */
+    border-radius: 2px;
+    cursor: text;
+}
+
+/* 禁用默认选择样式，只显示自定义高亮 */
+.text-content::selection {
+    background-color: transparent;
+}
+
+.text-content::-moz-selection {
+    background-color: transparent;
+}
+
+.text-content::-webkit-selection {
+    background-color: transparent;
+}
+
+.annotation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    z-index: 2;
+    pointer-events: none;
+}

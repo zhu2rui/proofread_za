@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贝塞尔曲线模拟器</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 贝塞尔曲线模拟器专用样式 */
+        .bezier-simulator-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .bezier-simulator-title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .bezier-simulator-controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        #degree-select {
+            width: 120px;
+        }
+        
+        .bezier-canvas-container {
+            position: relative;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fafafa;
+        }
+        
+        #bezier-canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #e74c3c;
+            border: 2px solid #c0392b;
+            border-radius: 50%;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .point:hover {
+            background-color: #c0392b;
+            transform: scale(1.2);
+        }
+        
+        .info-panel {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #e8f4f8;
+            border-radius: 8px;
+        }
+        
+        .info-panel h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .info-panel ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .info-panel li {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: #95a5a6;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="bezier-simulator-container">
+        <a href="index.html" class="back-link">返回文档标注器</a>
+        <h1 class="bezier-simulator-title">贝塞尔曲线模拟器</h1>
+        
+        <div class="bezier-simulator-controls">
+            <div class="control-group">
+                <label for="degree-select">曲线阶数：</label>
+                <select id="degree-select">
+                    <option value="1">1阶（直线）</option>
+                    <option value="2">2阶（二次贝塞尔）</option>
+                    <option value="3" selected>3阶（三次贝塞尔）</option>
+                    <option value="4">4阶（四次贝塞尔）</option>
+                    <option value="5">5阶（五次贝塞尔）</option>
+                    <option value="6">6阶（六次贝塞尔）</option>
+                    <option value="7">7阶（七次贝塞尔）</option>
+                    <option value="8">8阶（八次贝塞尔）</option>
+                    <option value="9">9阶（九次贝塞尔）</option>
+                    <option value="10">10阶（十次贝塞尔）</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="curve-color">曲线颜色：</label>
+                <input type="color" id="curve-color" value="#3498db">
+            </div>
+            
+            <div class="control-group">
+                <label for="curve-width">曲线宽度：</label>
+                <input type="range" id="curve-width" min="1" max="10" value="2">
+                <span id="curve-width-value">2</span>
+            </div>
+            
+            <div class="control-group">
+                <button id="reset-btn" style="padding: 8px 16px; background-color: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">重置控制点</button>
+            </div>
+            
+            <div class="control-group" style="margin-left: auto;">
+                <label for="zoom-level">缩放：</label>
+                <button id="zoom-out-btn" style="padding: 8px 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">-</button>
+                <span id="zoom-level" style="min-width: 50px; display: inline-block; text-align: center;">100%</span>
+                <button id="zoom-in-btn" style="padding: 8px 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">+</button>
+                <button id="reset-zoom-btn" style="padding: 8px 12px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">重置缩放</button>
+            </div>
+        </div>
+        
+        <div class="bezier-canvas-container">
+            <canvas id="bezier-canvas" width="1160" height="600"></canvas>
+            <div id="points-container"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>使用说明</h3>
+            <ul>
+                <li><strong>选择曲线阶数</strong>：在控制面板中选择1~10阶贝塞尔曲线</li>
+                <li><strong>拖动控制点</strong>：直接拖动红色圆点调整曲线形状</li>
+                <li><strong>观察实时变化</strong>：曲线会随着控制点的移动实时更新</li>
+                <li><strong>调整样式</strong>：可自定义曲线颜色和宽度</li>
+                <li><strong>重置控制点</strong>：点击"重置控制点"按钮恢复默认位置</li>
+                <li><strong>缩放视图</strong>：使用"-"和"+"按钮调整视图缩放，或点击"重置缩放"恢复原始大小</li>
+            </ul>
+            <h3>贝塞尔曲线阶数说明</h3>
+            <ul>
+                <li><strong>1阶</strong>：由2个点定义的直线</li>
+                <li><strong>2阶</strong>：由3个点定义的二次贝塞尔曲线</li>
+                <li><strong>3阶</strong>：由4个点定义的三次贝塞尔曲线（最常用）</li>
+                <li><strong>4阶</strong>：由5个点定义的四次贝塞尔曲线</li>
+                <li><strong>5阶</strong>：由6个点定义的五次贝塞尔曲线</li>
+                <li><strong>6-10阶</strong>：高阶贝塞尔曲线，由更多控制点定义，可创建更复杂的曲线形状</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // 贝塞尔曲线模拟器
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const canvas = document.getElementById('bezier-canvas');
+            const ctx = canvas.getContext('2d');
+            const degreeSelect = document.getElementById('degree-select');
+            const curveColorInput = document.getElementById('curve-color');
+            const curveWidthInput = document.getElementById('curve-width');
+            const curveWidthValue = document.getElementById('curve-width-value');
+            const pointsContainer = document.getElementById('points-container');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 存储数据
+            let degree = parseInt(degreeSelect.value);
+            let controlPoints = [];
+            let isDragging = false;
+            let draggedPointIndex = -1;
+            let zoomLevel = 1.0; // 缩放级别，1.0表示原始大小
+            let minZoom = 0.1; // 最小缩放
+            let maxZoom = 3.0; // 最大缩放
+            let zoomStep = 0.1; // 缩放步长
+            
+            // 初始化控制点位置
+            function initControlPoints() {
+                controlPoints = [];
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const offset = 150;
+                
+                for (let i = 0; i <= degree; i++) {
+                    const angle = (i / degree) * Math.PI * 0.8 - Math.PI * 0.4;
+                    const x = centerX + Math.cos(angle) * offset;
+                    const y = centerY + Math.sin(angle) * offset;
+                    controlPoints.push({ x, y });
+                }
+                
+                drawCurve();
+                updatePointElements();
+            }
+            
+            // 绘制贝塞尔曲线
+            function drawCurve() {
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 保存当前上下文状态
+                ctx.save();
+                
+                // 应用缩放变换
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                ctx.translate(centerX, centerY);
+                ctx.scale(zoomLevel, zoomLevel);
+                ctx.translate(-centerX, -centerY);
+                
+                // 绘制辅助线
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                
+                ctx.beginPath();
+                ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+                for (let i = 1; i < controlPoints.length; i++) {
+                    ctx.lineTo(controlPoints[i].x, controlPoints[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // 绘制贝塞尔曲线
+                ctx.strokeStyle = curveColorInput.value;
+                ctx.lineWidth = parseInt(curveWidthInput.value) / zoomLevel; // 调整线宽以适应缩放
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+                
+                if (degree === 1) {
+                    // 1阶 - 直线
+                    ctx.lineTo(controlPoints[1].x, controlPoints[1].y);
+                } else if (degree === 2) {
+                    // 2阶 - 二次贝塞尔曲线
+                    ctx.quadraticCurveTo(
+                        controlPoints[1].x, controlPoints[1].y,
+                        controlPoints[2].x, controlPoints[2].y
+                    );
+                } else if (degree === 3) {
+                    // 3阶 - 三次贝塞尔曲线
+                    ctx.bezierCurveTo(
+                        controlPoints[1].x, controlPoints[1].y,
+                        controlPoints[2].x, controlPoints[2].y,
+                        controlPoints[3].x, controlPoints[3].y
+                    );
+                } else {
+                    // 4-10阶 - 使用分段三次贝塞尔曲线近似
+                    for (let i = 1; i < controlPoints.length - 3; i += 2) {
+                        const cp1 = controlPoints[i];
+                        const cp2 = controlPoints[i + 1];
+                        const cp3 = controlPoints[i + 2];
+                        const midX = (cp2.x + cp3.x) / 2;
+                        const midY = (cp2.y + cp3.y) / 2;
+                        
+                        ctx.bezierCurveTo(
+                            cp1.x, cp1.y,
+                            cp2.x, cp2.y,
+                            midX, midY
+                        );
+                    }
+                    
+                    // 处理最后一段
+                    const lastIndex = controlPoints.length - 1;
+                    if (lastIndex >= 3) {
+                        const cp1 = controlPoints[lastIndex - 2];
+                        const cp2 = controlPoints[lastIndex - 1];
+                        const end = controlPoints[lastIndex];
+                        
+                        ctx.bezierCurveTo(
+                            cp1.x, cp1.y,
+                            cp2.x, cp2.y,
+                            end.x, end.y
+                        );
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // 恢复上下文状态
+                ctx.restore();
+            }
+            
+            // 创建控制点元素
+            function updatePointElements() {
+                // 清空现有元素
+                pointsContainer.innerHTML = '';
+                
+                // 创建新的控制点元素
+                controlPoints.forEach((point, index) => {
+                    const pointElement = document.createElement('div');
+                    pointElement.className = 'point';
+                    pointElement.textContent = index + 1;
+                    
+                    // 应用缩放变换到控制点位置
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const scaledX = centerX + (point.x - centerX) * zoomLevel;
+                    const scaledY = centerY + (point.y - centerY) * zoomLevel;
+                    
+                    pointElement.style.left = `${scaledX - 7}px`;
+                    pointElement.style.top = `${scaledY - 7}px`;
+                    pointElement.dataset.index = index;
+                    
+                    // 添加拖动事件
+                    pointElement.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        draggedPointIndex = index;
+                        e.preventDefault();
+                    });
+                    
+                    pointsContainer.appendChild(pointElement);
+                });
+            }
+            
+            // 处理鼠标移动
+            function handleMouseMove(e) {
+                if (!isDragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                let y = e.clientY - rect.top;
+                
+                // 应用反向缩放变换，将屏幕坐标转换为原始坐标
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                x = centerX + (x - centerX) / zoomLevel;
+                y = centerY + (y - centerY) / zoomLevel;
+                
+                // 更新控制点位置
+                controlPoints[draggedPointIndex] = { x, y };
+                
+                // 重新绘制曲线和控制点
+                drawCurve();
+                updatePointElements();
+            }
+            
+            // 处理鼠标释放
+            function handleMouseUp() {
+                isDragging = false;
+                draggedPointIndex = -1;
+            }
+            
+            // 初始化
+            initControlPoints();
+            
+            // 获取缩放相关DOM元素
+            const zoomLevelSpan = document.getElementById('zoom-level');
+            const zoomOutBtn = document.getElementById('zoom-out-btn');
+            const zoomInBtn = document.getElementById('zoom-in-btn');
+            const resetZoomBtn = document.getElementById('reset-zoom-btn');
+            
+            // 更新缩放级别显示
+            function updateZoomDisplay() {
+                zoomLevelSpan.textContent = `${Math.round(zoomLevel * 100)}%`;
+            }
+            
+            // 放大
+            function zoomIn() {
+                if (zoomLevel < maxZoom) {
+                    zoomLevel += zoomStep;
+                    if (zoomLevel > maxZoom) zoomLevel = maxZoom;
+                    drawCurve();
+                    updatePointElements();
+                    updateZoomDisplay();
+                }
+            }
+            
+            // 缩小
+            function zoomOut() {
+                if (zoomLevel > minZoom) {
+                    zoomLevel -= zoomStep;
+                    if (zoomLevel < minZoom) zoomLevel = minZoom;
+                    drawCurve();
+                    updatePointElements();
+                    updateZoomDisplay();
+                }
+            }
+            
+            // 重置缩放
+            function resetZoom() {
+                zoomLevel = 1.0;
+                drawCurve();
+                updatePointElements();
+                updateZoomDisplay();
+            }
+            
+            // 事件监听
+            
+            // 曲线阶数变化
+            degreeSelect.addEventListener('change', (e) => {
+                degree = parseInt(e.target.value);
+                initControlPoints();
+            });
+            
+            // 曲线宽度变化
+            curveWidthInput.addEventListener('input', (e) => {
+                curveWidthValue.textContent = e.target.value;
+                drawCurve();
+            });
+            
+            // 曲线颜色变化
+            curveColorInput.addEventListener('input', () => {
+                drawCurve();
+            });
+            
+            // 重置控制点
+            resetBtn.addEventListener('click', initControlPoints);
+            
+            // 缩放控制
+            zoomOutBtn.addEventListener('click', zoomOut);
+            zoomInBtn.addEventListener('click', zoomIn);
+            resetZoomBtn.addEventListener('click', resetZoom);
+            
+            // 鼠标事件
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('mouseleave', handleMouseUp);
+            
+            // 初始化缩放显示
+            updateZoomDisplay();
+        });
+    </script>
+</body>
+</html>

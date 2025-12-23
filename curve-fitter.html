@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曲线拟合工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: crosshair;
+            background-color: #fafafa;
+        }
+        
+        .controls {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .control-group {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 16px;
+        }
+        
+        .slider-group {
+            margin: 10px 0;
+        }
+        
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .slider-value {
+            font-size: 12px;
+            color: #888;
+            text-align: right;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .params {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .result {
+            margin-top: 20px;
+        }
+        
+        .result h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .sample-points {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .curve-info {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .code-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .instructions {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeeba;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        
+        .instructions ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>曲线拟合工具</h1>
+        
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>在左侧画板上按住鼠标绘制任意线段</li>
+                <li>释放鼠标后，系统会自动采样50个点并拟合平滑曲线</li>
+                <li>右侧显示拟合参数和可复现的JavaScript代码</li>
+                <li>点击"清除"按钮可重置画板</li>
+                <li>点击"下载参数"可保存曲线参数为JSON文件</li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>操作</h3>
+                    <button id="clearBtn">清除</button>
+                    <button id="downloadBtn" disabled>下载参数</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>平滑度调整</h3>
+                    <div class="slider-group">
+                        <label for="tensionSlider">曲线张力</label>
+                        <input type="range" id="tensionSlider" min="0" max="1" step="0.1" value="0.5">
+                        <div class="slider-value">当前值: <span id="tensionValue">0.5</span></div>
+                        <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                            提示: 值越小曲线越平滑，值越大曲线越贴近原始路径
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>采样点</h3>
+                    <div id="sampleInfo" class="sample-points">
+                        采样点数: 0/50
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>曲线参数</h3>
+                    <div id="curveParams" class="params">
+                        绘制线段后显示参数
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="result">
+            <h3>可复现的JavaScript代码</h3>
+            <div id="jsCode" class="code-block">
+                // 绘制完成后显示复现代码
+            </div>
+        </div>
+        
+        <div class="result">
+            <h3>曲线信息</h3>
+            <div id="curveInfo" class="curve-info">
+                请在画板上绘制线段
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Canvas相关变量
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let points = [];
+        let sampledPoints = [];
+        let bezierCurve = null;
+        let tension = 0.5; // 曲线张力参数
+        
+        // 控制按钮
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const tensionSlider = document.getElementById('tensionSlider');
+        const tensionValue = document.getElementById('tensionValue');
+        
+        // 结果显示区域
+        const sampleInfo = document.getElementById('sampleInfo');
+        const curveParams = document.getElementById('curveParams');
+        const jsCode = document.getElementById('jsCode');
+        const curveInfo = document.getElementById('curveInfo');
+        
+        // 初始化Canvas
+        function initCanvas() {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000000';
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // 绘制点
+        function drawPoint(x, y, color = '#ff0000', radius = 3) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+        
+        // 绘制线段
+        function drawLine(pointsArray, color = '#000000', lineWidth = 2) {
+            if (pointsArray.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(pointsArray[0].x, pointsArray[0].y);
+            for (let i = 1; i < pointsArray.length; i++) {
+                ctx.lineTo(pointsArray[i].x, pointsArray[i].y);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+        
+        // 采样点函数
+        function samplePoints(inputPoints, numSamples = 50) {
+            if (inputPoints.length < 2) return [];
+            
+            // 计算总长度
+            let totalLength = 0;
+            for (let i = 1; i < inputPoints.length; i++) {
+                const dx = inputPoints[i].x - inputPoints[i-1].x;
+                const dy = inputPoints[i].y - inputPoints[i-1].y;
+                totalLength += Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            const sampleDistance = totalLength / (numSamples - 1);
+            const sampled = [inputPoints[0]];
+            let currentDistance = 0;
+            let lastPoint = inputPoints[0];
+            
+            for (let i = 1; i < inputPoints.length; i++) {
+                const currentPoint = inputPoints[i];
+                const dx = currentPoint.x - lastPoint.x;
+                const dy = currentPoint.y - lastPoint.y;
+                const segmentLength = Math.sqrt(dx * dx + dy * dy);
+                
+                if (currentDistance + segmentLength >= sampleDistance) {
+                    const ratio = (sampleDistance - currentDistance) / segmentLength;
+                    const x = lastPoint.x + dx * ratio;
+                    const y = lastPoint.y + dy * ratio;
+                    sampled.push({x, y});
+                    currentDistance = 0;
+                    lastPoint = {x, y};
+                    i--;
+                } else {
+                    currentDistance += segmentLength;
+                    lastPoint = currentPoint;
+                }
+                
+                if (sampled.length >= numSamples) break;
+            }
+            
+            // 确保最后一个点被包含
+            if (sampled.length < numSamples && inputPoints.length > 0) {
+                sampled.push(inputPoints[inputPoints.length - 1]);
+            }
+            
+            // 如果采样点不足，进行补充
+            while (sampled.length < numSamples) {
+                sampled.push(sampled[sampled.length - 1]);
+            }
+            
+            return sampled;
+        }
+        
+        // Catmull-Rom样条转贝塞尔曲线控制点
+        function catmullRomToBezier(p0, p1, p2, p3) {
+            const cp1x = p1.x + (p2.x - p0.x) * tension / 3;
+            const cp1y = p1.y + (p2.y - p0.y) * tension / 3;
+            
+            const cp2x = p2.x - (p3.x - p1.x) * tension / 3;
+            const cp2y = p2.y - (p3.y - p1.y) * tension / 3;
+            
+            return [
+                p1,
+                {x: cp1x, y: cp1y},
+                {x: cp2x, y: cp2y},
+                p2
+            ];
+        }
+        
+        // 贝塞尔曲线拟合（使用Catmull-Rom样条平滑）
+        function fitBezierCurve(points) {
+            if (points.length < 2) return null;
+            
+            // 使用三次贝塞尔曲线拟合
+            const curves = [];
+            
+            // 如果只有两个点，直接生成一条贝塞尔曲线
+            if (points.length === 2) {
+                const p0 = points[0];
+                const p3 = points[1];
+                const midX = (p0.x + p3.x) / 2;
+                const p1 = {x: midX, y: p0.y};
+                const p2 = {x: midX, y: p3.y};
+                curves.push([p0, p1, p2, p3]);
+            } else {
+                // 使用Catmull-Rom样条生成平滑曲线
+                // 添加首尾控制点以获得更好的边界效果
+                const extendedPoints = [
+                    {x: 2 * points[0].x - points[1].x, y: 2 * points[0].y - points[1].y}, // 虚拟起点
+                    ...points,
+                    {x: 2 * points[points.length - 1].x - points[points.length - 2].x, y: 2 * points[points.length - 1].y - points[points.length - 2].y} // 虚拟终点
+                ];
+                
+                for (let i = 1; i < extendedPoints.length - 2; i++) {
+                    const p0 = extendedPoints[i - 1];
+                    const p1 = extendedPoints[i];
+                    const p2 = extendedPoints[i + 1];
+                    const p3 = extendedPoints[i + 2];
+                    
+                    const bezierCurve = catmullRomToBezier(p0, p1, p2, p3);
+                    curves.push(bezierCurve);
+                }
+            }
+            
+            return curves;
+        }
+        
+        // 绘制贝塞尔曲线
+        function drawBezierCurve(curves, color = '#0000ff', lineWidth = 3) {
+            ctx.beginPath();
+            ctx.moveTo(curves[0][0].x, curves[0][0].y);
+            
+            for (const curve of curves) {
+                const [p0, p1, p2, p3] = curve;
+                ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+            }
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+        
+        // 生成可复现的JS代码
+        function generateJSCode(curves) {
+            if (!curves || curves.length === 0) return '';
+            
+            let code = `// 复现曲线的JavaScript代码
+const canvas = document.getElementById('your-canvas-id');
+const ctx = canvas.getContext('2d');
+
+// 绘制拟合的贝塞尔曲线
+function drawCurve() {
+    ctx.beginPath();
+    ctx.moveTo(${curves[0][0].x.toFixed(2)}, ${curves[0][0].y.toFixed(2)});
+    
+`;
+            
+    for (const curve of curves) {
+        const [p0, p1, p2, p3] = curve;
+        code += `    ctx.bezierCurveTo(${p1.x.toFixed(2)}, ${p1.y.toFixed(2)}, ${p2.x.toFixed(2)}, ${p2.y.toFixed(2)}, ${p3.x.toFixed(2)}, ${p3.y.toFixed(2)});
+`;
+    }
+    
+    code += `    
+    ctx.strokeStyle = '#0000ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+}
+
+// 调用绘制函数
+drawCurve();`;
+    
+    return code;
+}
+        
+        // 生成曲线参数
+        function generateCurveParams(sampledPoints, curves) {
+            const params = {
+                samplePoints: sampledPoints.map(p => ({x: p.x.toFixed(2), y: p.y.toFixed(2)})),
+                bezierCurves: curves.map(curve => {
+                    return curve.map(p => ({x: p.x.toFixed(2), y: p.y.toFixed(2)}));
+                }),
+                totalPoints: sampledPoints.length,
+                totalCurves: curves.length
+            };
+            
+            return JSON.stringify(params, null, 2);
+        }
+        
+        // 下载参数
+        function downloadParams() {
+            if (!bezierCurve) return;
+            
+            const params = generateCurveParams(sampledPoints, bezierCurve);
+            const blob = new Blob([params], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'curve-params.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 更新UI显示
+        function updateUI() {
+            if (sampledPoints.length > 0) {
+                sampleInfo.textContent = `采样点数: ${sampledPoints.length}/50`;
+            }
+            
+            if (bezierCurve) {
+                const params = generateCurveParams(sampledPoints, bezierCurve);
+                curveParams.textContent = params;
+                
+                const code = generateJSCode(bezierCurve);
+                jsCode.textContent = code;
+                
+                curveInfo.innerHTML = `
+                    <strong>曲线信息:</strong><br>
+                    - 采样点数量: ${sampledPoints.length}<br>
+                    - 贝塞尔曲线段数: ${bezierCurve.length}<br>
+                    - 总控制点数量: ${bezierCurve.length * 4}<br>
+                    - 曲线类型: 三次贝塞尔曲线
+                `;
+                
+                downloadBtn.disabled = false;
+            }
+        }
+        
+        // 清除画布
+        function clearCanvas() {
+            points = [];
+            sampledPoints = [];
+            bezierCurve = null;
+            initCanvas();
+            
+            sampleInfo.textContent = '采样点数: 0/50';
+            curveParams.textContent = '绘制线段后显示参数';
+            jsCode.textContent = '// 绘制完成后显示复现代码';
+            curveInfo.textContent = '请在画板上绘制线段';
+            downloadBtn.disabled = true;
+        }
+        
+        // 鼠标事件处理
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            points = [{x, y}];
+            drawPoint(x, y);
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            points.push({x, y});
+            drawLine(points);
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            // 采样50个点
+            sampledPoints = samplePoints(points, 50);
+            
+            // 绘制采样点
+            sampledPoints.forEach(point => {
+                drawPoint(point.x, point.y, '#00ff00', 2);
+            });
+            
+            // 拟合贝塞尔曲线
+            bezierCurve = fitBezierCurve(sampledPoints);
+            
+            // 绘制贝塞尔曲线
+            if (bezierCurve) {
+                drawBezierCurve(bezierCurve);
+            }
+            
+            // 更新UI
+            updateUI();
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+        
+        // 重绘曲线（用于调整张力时）
+        function redrawCurve() {
+            if (sampledPoints.length === 0) return;
+            
+            // 清空画布并重新绘制原始路径
+            initCanvas();
+            drawLine(points);
+            
+            // 绘制采样点
+            sampledPoints.forEach(point => {
+                drawPoint(point.x, point.y, '#00ff00', 2);
+            });
+            
+            // 重新拟合贝塞尔曲线
+            bezierCurve = fitBezierCurve(sampledPoints);
+            
+            // 绘制贝塞尔曲线
+            if (bezierCurve) {
+                drawBezierCurve(bezierCurve);
+            }
+            
+            // 更新UI
+            updateUI();
+        }
+        
+        // 张力滑块事件处理
+        tensionSlider.addEventListener('input', (e) => {
+            tension = parseFloat(e.target.value);
+            tensionValue.textContent = tension.toFixed(1);
+            redrawCurve();
+        });
+        
+        // 按钮事件
+        clearBtn.addEventListener('click', clearCanvas);
+        downloadBtn.addEventListener('click', downloadParams);
+        
+        // 初始化
+        initCanvas();
+    </script>
+</body>
+</html>
